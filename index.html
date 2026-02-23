@@ -41,15 +41,21 @@
 
 <script>
   let nextEventStart = null;
+  let currentEventEnd = null;
   let nextEventName = null;
   let countdownInterval = null;
 
   function updateCountdown() {
-    if (!nextEventStart) return;
     const now = new Date();
-    const diffMinutes = Math.max(0, Math.ceil((nextEventStart - now) / 60000));
-    document.getElementById('details').innerHTML =
-      "Next Meeting in <u>" + diffMinutes + "'</u> for <u>" + nextEventName + "</u>";
+    const details = document.getElementById('details');
+
+    if (currentEventEnd) {
+      const minsLeft = Math.max(0, Math.ceil((currentEventEnd - now) / 60000));
+      details.innerHTML = "<u>" + minsLeft + " minutes</u> left · <u>" + nextEventName + "</u>";
+    } else if (nextEventStart) {
+      const minsUntil = Math.max(0, Math.ceil((nextEventStart - now) / 60000));
+      details.innerHTML = "Next Meeting in <u>" + minsUntil + "'</u> for <u>" + nextEventName + "</u>";
+    }
   }
 
   async function loadStatus() {
@@ -63,22 +69,28 @@
 
       if (countdownInterval) clearInterval(countdownInterval);
       nextEventStart = null;
+      currentEventEnd = null;
       nextEventName = null;
 
       if (data.status === "BUSY") {
         body.style.backgroundColor = "#d32f2f";
-        status.innerText = "IN USE";
-        details.innerText = data.currentEvent.summary;
+        status.innerText = "BUSY";
+        currentEventEnd = new Date(data.currentEvent.end);
+        nextEventName = data.currentEvent.summary;
+        updateCountdown();
+        countdownInterval = setInterval(updateCountdown, 10000);
 
       } else if (data.status === "SOON") {
         body.style.backgroundColor = "#f9a825";
-        status.innerText = "STARTING SOON";
-        details.innerText = data.nextEvent.summary;
+        status.innerText = "SOON";
+        nextEventStart = new Date(data.nextEvent.start);
+        nextEventName = data.nextEvent.summary;
+        updateCountdown();
+        countdownInterval = setInterval(updateCountdown, 10000);
 
       } else {
         body.style.backgroundColor = "#2e7d32";
         status.innerText = "AVAILABLE";
-
         if (data.nextEvent) {
           nextEventStart = new Date(data.nextEvent.start);
           nextEventName = data.nextEvent.summary;
