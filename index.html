@@ -54,7 +54,7 @@
       details.innerHTML = "<u>" + minsLeft + " minutes</u> left · <u>" + nextEventName + "</u>";
     } else if (nextEventStart) {
       const minsUntil = Math.max(0, Math.ceil((nextEventStart - now) / 60000));
-      details.innerHTML = "Next Meeting in <u>" + minsUntil + "'</u> for <u>" + nextEventName + "</u>";
+      details.innerHTML = "Next Meeting in <u>" + minsUntil + "'</u> · <u>" + nextEventName + "</u>";
     }
   }
 
