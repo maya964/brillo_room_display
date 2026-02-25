@@ -40,6 +40,9 @@
   <p class="booking">You can book this meeting room via Notion or Google Calendar.</p>
 
 <script>
+  const CALENDAR_ID = "c_188d7qdmm4t2mjjum1lqle5l6u8ke@resource.calendar.google.com";
+  const API_KEY = "AIzaSyDYouq-OUTtfWKE4KPkZYk7n873GVFsrm4";
+
   let nextEventStart = null;
   let currentEventEnd = null;
   let nextEventName = null;
@@ -60,8 +63,15 @@
 
   async function loadStatus() {
     try {
-      const res = await fetch("https://hook.eu1.make.com/8pi0quq44go943pgsvkq0tag13orc9wr");
+      const now = new Date();
+      const timeMin = now.toISOString();
+      const timeMax = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString();
+
+      const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?key=${API_KEY}&timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime&maxResults=10`;
+
+      const res = await fetch(url);
       const data = await res.json();
+      const events = data.items || [];
 
       const body = document.getElementById("body");
       const status = document.getElementById("status");
@@ -72,33 +82,58 @@
       currentEventEnd = null;
       nextEventName = null;
 
-      if (data.status === "BUSY") {
+      let currentEvent = null;
+      let nextEvent = null;
+
+      for (const event of events) {
+        const start = new Date(event.start.dateTime || event.start.date);
+        const end = new Date(event.end.dateTime || event.end.date);
+
+        if (start <= now && end >= now) {
+          currentEvent = event;
+        }
+        if (start > now && !nextEvent) {
+          nextEvent = event;
+        }
+      }
+
+      if (currentEvent) {
+        // BUSY
         body.style.backgroundColor = "#d32f2f";
         status.innerText = "BUSY";
-        currentEventEnd = new Date(data.currentEvent.end);
-        nextEventName = data.currentEvent.summary;
+        currentEventEnd = new Date(currentEvent.end.dateTime || currentEvent.end.date);
+        nextEventName = currentEvent.summary;
         updateCountdown();
         countdownInterval = setInterval(updateCountdown, 10000);
 
-      } else if (data.status === "SOON") {
-        body.style.backgroundColor = "#FFDD00";
-        status.innerText = "SOON";
-        nextEventStart = new Date(data.nextEvent.start);
-        nextEventName = data.nextEvent.summary;
-        updateCountdown();
-        countdownInterval = setInterval(updateCountdown, 10000);
+      } else if (nextEvent) {
+        const nextStart = new Date(nextEvent.start.dateTime || nextEvent.start.date);
+        const diffMinutes = (nextStart - now) / 60000;
 
-      } else {
-        body.style.backgroundColor = "#2e7d32";
-        status.innerText = "AVAILABLE";
-        if (data.nextEvent) {
-          nextEventStart = new Date(data.nextEvent.start);
-          nextEventName = data.nextEvent.summary;
+        if (diffMinutes <= 15) {
+          // SOON
+          body.style.backgroundColor = "#f9a825";
+          status.innerText = "SOON";
+          nextEventStart = nextStart;
+          nextEventName = nextEvent.summary;
           updateCountdown();
           countdownInterval = setInterval(updateCountdown, 10000);
+
         } else {
-          details.innerText = "";
+          // FREE with upcoming meeting
+          body.style.backgroundColor = "#2e7d32";
+          status.innerText = "AVAILABLE";
+          nextEventStart = nextStart;
+          nextEventName = nextEvent.summary;
+          updateCountdown();
+          countdownInterval = setInterval(updateCountdown, 10000);
         }
+
+      } else {
+        // FREE with no meetings
+        body.style.backgroundColor = "#2e7d32";
+        status.innerText = "AVAILABLE";
+        details.innerText = "";
       }
 
     } catch (err) {
