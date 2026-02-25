@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meeting Room Display</title>
+<style>
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    color: white;
+    text-align: center;
+    background-color: #2e7d32;
+    transition: background-color 0.5s;
+  }
+  h1 { font-size: 100px; margin: 0; }
+  h2 { font-size: 30px; margin-top: 20px; }
+  .booking {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 40px;
+    margin: 0 auto;
+    text-align: center;
+    font-style: italic;
+    color: rgba(255,255,255,0.95);
+    padding: 0 12px;
+  }
+</style>
+</head>
+<body id="body">
+  <div>
+    <h1 id="status">Loading...</h1>
+    <h2 id="details"></h2>
+  </div>
+  <p class="booking">You can book this meeting room via Notion or Google Calendar.</p>
+
+<script>
+  let nextEventStart = null;
+  let currentEventEnd = null;
+  let nextEventName = null;
+  let countdownInterval = null;
+
+  function updateCountdown() {
+    const now = new Date();
+    const details = document.getElementById('details');
+
+    if (currentEventEnd) {
+      const minsLeft = Math.max(0, Math.ceil((currentEventEnd - now) / 60000));
+      details.innerHTML = "<u>" + minsLeft + " minutes</u> left · <u>" + nextEventName + "</u>";
+    } else if (nextEventStart) {
+      const minsUntil = Math.max(0, Math.ceil((nextEventStart - now) / 60000));
+      details.innerHTML = "Next Meeting in <u>" + minsUntil + "'</u> for <u>" + nextEventName + "</u>";
+    }
+  }
+
+  async function loadStatus() {
+    try {
+      const res = await fetch("https://hook.eu1.make.com/8pi0quq44go943pgsvkq0tag13orc9wr");
+      const data = await res.json();
+
+      const body = document.getElementById("body");
+      const status = document.getElementById("status");
+      const details = document.getElementById("details");
+
+      if (countdownInterval) clearInterval(countdownInterval);
+      nextEventStart = null;
+      currentEventEnd = null;
+      nextEventName = null;
+
+      if (data.status === "BUSY") {
+        body.style.backgroundColor = "#d32f2f";
+        status.innerText = "BUSY";
+        currentEventEnd = new Date(data.currentEvent.end);
+        nextEventName = data.currentEvent.summary;
+        updateCountdown();
+        countdownInterval = setInterval(updateCountdown, 10000);
+
+      } else if (data.status === "SOON") {
+        body.style.backgroundColor = "#FFDD00";
+        status.innerText = "SOON";
+        nextEventStart = new Date(data.nextEvent.start);
+        nextEventName = data.nextEvent.summary;
+        updateCountdown();
+        countdownInterval = setInterval(updateCountdown, 10000);
+
+      } else {
+        body.style.backgroundColor = "#2e7d32";
+        status.innerText = "AVAILABLE";
+        if (data.nextEvent) {
+          nextEventStart = new Date(data.nextEvent.start);
+          nextEventName = data.nextEvent.summary;
+          updateCountdown();
+          countdownInterval = setInterval(updateCountdown, 10000);
+        } else {
+          details.innerText = "";
+        }
+      }
+
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  loadStatus();
+  setInterval(loadStatus, 120000);
+</script>
+</body>
+</html>
