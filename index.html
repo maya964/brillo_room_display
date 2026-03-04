@@ -54,10 +54,10 @@
 
     if (currentEventEnd) {
       const minsLeft = Math.max(0, Math.ceil((currentEventEnd - now) / 60000));
-      details.innerHTML = "<u>" + minsLeft + " minutes</u> left · <u>" + nextEventName + "</u>";
+      details.innerHTML = "<u>" + minsLeft + " minutes</u> left";
     } else if (nextEventStart) {
       const minsUntil = Math.max(0, Math.ceil((nextEventStart - now) / 60000));
-      details.innerHTML = "Next Meeting in <u>" + minsUntil + "'</u> for <u>" + nextEventName + "</u>";
+      details.innerHTML = "Next Meeting in <u>" + minsUntil + "'</u>";
     }
   }
 
