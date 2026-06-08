@@ -138,6 +138,12 @@
 
     } catch (err) {
       console.error(err);
+      const body = document.getElementById("body");
+      const status = document.getElementById("status");
+      const details = document.getElementById("details");
+      body.style.backgroundColor = "#37474f";
+      status.innerText = "ERROR";
+      details.innerText = "Could not load calendar data.";
     }
   }
 
@@ -146,4 +152,3 @@
 </script>
 </body>
 </html>
-// note: just to commmit 
